@@ -34,6 +34,90 @@ const generateAuthString = (user, accessToken) => {
     return Buffer.from(authString).toString('base64');
 }
 
+async function graph_api(refresh_token, client_id) {
+    const response = await fetch('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            'client_id': client_id,
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+            'scope': 'https://graph.microsoft.com/.default'
+        }).toString()
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+    }
+
+    const responseText = await response.text();
+
+    try {
+        const data = JSON.parse(responseText);
+
+        if (data.scope.indexOf('https://graph.microsoft.com/Mail.ReadWrite') != -1) {
+            return {
+                access_token: data.access_token,
+                status: true
+            }
+        }
+
+        return {
+            access_token: data.access_token,
+            status: false
+        }
+    } catch (parseError) {
+        throw new Error(`Failed to parse JSON: ${parseError.message}, response: ${responseText}`);
+    }
+}
+
+async function get_emails(access_token, mailbox) {
+
+    if (!access_token) {
+        console.log("Failed to obtain access token'");
+        return;
+    }
+
+    try {
+        const response = await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/${mailbox}/messages?$top=10000`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                "Authorization": `Bearer ${access_token}`
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return
+        }
+
+        const responseData = await response.json();
+
+        const emails = responseData.value;
+
+        const response_emails = emails.map(item => {
+            return {
+                send: item['from']['emailAddress']['address'],
+                subject: item['subject'],
+                text: item['bodyPreview'],
+                html: item['body']['content'],
+                date: item['createdDateTime'],
+            }
+        })
+
+        return response_emails
+
+    } catch (error) {
+        console.error('Error fetching emails:', error);
+        return;
+    }
+
+}
+
 module.exports = async (req, res) => {
 
     const { password } = req.method === 'GET' ? req.query : req.body;
@@ -47,7 +131,7 @@ module.exports = async (req, res) => {
     }
 
     // 根据请求方法从 query 或 body 中获取参数
-    const { refresh_token, client_id, email, mailbox } = req.method === 'GET' ? req.query : req.body;
+    let { refresh_token, client_id, email, mailbox } = req.method === 'GET' ? req.query : req.body;
 
     // 检查是否缺少必要的参数
     if (!refresh_token || !client_id || !email || !mailbox) {
@@ -55,6 +139,33 @@ module.exports = async (req, res) => {
     }
 
     try {
+
+        console.log("判断是否graph_api");
+        const graph_api_result = await graph_api(refresh_token, client_id)
+
+        if (graph_api_result.status) {
+
+            console.log("是graph_api");
+
+            if (mailbox != "INBOX" && mailbox != "Junk") {
+                mailbox = "inbox";
+            }
+
+            if (mailbox == 'INBOX') {
+                mailbox = 'inbox';
+            }
+
+            if (mailbox == 'Junk') {
+                mailbox = 'junkemail';
+            }
+
+            const result = await get_emails(graph_api_result.access_token, mailbox);
+
+            res.status(200).json(result);
+
+            return
+        }
+
         const access_token = await get_access_token(refresh_token, client_id);
         const authString = generateAuthString(email, access_token);
 
