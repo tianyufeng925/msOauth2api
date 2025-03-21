@@ -848,7 +848,6 @@
             }
         }
 
-
         // 切换分页
         function changePage(page) {
             currentPage = page;
@@ -910,7 +909,7 @@
                             // 如果是 500 错误，尝试解析返回的 JSON 数据
                             return response.json().then(errorData => {
                                 // 如果返回的错误信息是 "Nothing to fetch"，则设置 mailData 为空
-                                if (errorData.error === "Nothing to fetch") {
+                                if (errorData.data.error === "Nothing to fetch") {
                                     // 更新全局邮件数据
                                     mailData = [];
                                     // 隐藏其他内容区域
@@ -943,7 +942,8 @@
                 .then(data => {
                     // 如果 data 存在（即不是 "Nothing to fetch" 的情况），更新全局邮件数据
                     if (data) {
-                        mailData = data;
+
+                        mailData = data.data;
 
                         // 隐藏其他内容区域
                         document.querySelectorAll('.content-section').forEach(section => {
@@ -952,7 +952,7 @@
                         // 显示邮件列表区域
                         document.getElementById('mail-list').classList.add('active');
                         // 渲染邮件列表
-                        renderMailTable(data);
+                        renderMailTable(mailData);
                     }
                 })
                 .catch(error => {
