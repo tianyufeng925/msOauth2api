@@ -626,7 +626,7 @@
                 </div>
             </div>
 
-            <ul id="mailboxList" class="mailbox-list">
+            <ul id="mailboxList" class="mailbox-list" style="position: relative; height: calc(100% - 42px);">
                 <!-- 邮箱列表项将通过JS动态添加 -->
             </ul>
         </aside>
@@ -732,6 +732,9 @@
 
             // 尝试从localStorage加载已保存的邮箱信息
             loadMailboxesFromStorage();
+
+            // 确保即使没有从localStorage加载邮箱，也会显示空状态
+            updateMailboxList();
 
             // 尝试从localStorage加载已保存的API密码和地址
             const savedApiPassword = localStorage.getItem('apiPassword');
@@ -958,7 +961,16 @@
             listElement.innerHTML = '';
 
             if (mailboxes.length === 0) {
-                listElement.innerHTML = '<div class="empty-state"><p>没有邮箱，请导入或添加</p></div>';
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.style.position = 'absolute';
+                emptyState.style.top = '0';
+                emptyState.style.left = '0';
+                emptyState.style.right = '0';
+                emptyState.style.bottom = '0';
+                emptyState.innerHTML = '<p>没有邮箱，请导入或添加</p>';
+                listElement.appendChild(emptyState);
+                listElement.style.position = 'relative';
                 return;
             }
 
