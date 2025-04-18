@@ -1,5 +1,3 @@
-const Imap = require('node-imap');
-
 module.exports = async (req, res) => {
 
     const { password } = req.method === 'GET' ? req.query : req.body;
@@ -11,7 +9,7 @@ module.exports = async (req, res) => {
             error: 'Authentication failed. Please provide valid credentials or contact administrator for access. Refer to API documentation for deployment details.'
         });
     }
-    
+
     // 根据请求方法从 query 或 body 中获取参数
     const params = req.method === 'GET' ? req.query : req.body;
     const { refresh_token, client_id, email } = params;
@@ -49,124 +47,93 @@ module.exports = async (req, res) => {
         }
     }
 
-    const generateAuthString = (user, accessToken) => {
-        const authString = `user=${user}\x01auth=Bearer ${accessToken}\x01\x01`;
-        return Buffer.from(authString).toString('base64');
-    }
-
     try {
         const access_token = await get_access_token();
-        const authString = generateAuthString(email, access_token);
 
-        const imap = new Imap({
-            user: email,
-            xoauth2: authString,
-            host: 'outlook.office365.com',
-            port: 993,
-            tls: true,
-            tlsOptions: {
-                rejectUnauthorized: false
-            }
-        });
+        // 使用 Microsoft Graph API 获取收件箱中的所有邮件
+        async function getAllMessages() {
+            let allMessages = [];
+            let nextLink = `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$select=id&$top=1000`;
 
-        async function openInbox() {
-            return new Promise((resolve, reject) => {
-                imap.openBox('INBOX', true, (err, box) => {
-                    if (err) return reject(err);
-                    resolve(box);
+            while (nextLink) {
+                console.log(`Fetching messages from: ${nextLink}`);
+                const response = await fetch(nextLink, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${access_token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
-            });
-        }
 
-        async function openInboxFolder() {
-            return new Promise((resolve, reject) => {
-                imap.openBox('INBOX', false, (err, box) => {
-                    if (err) return reject(err);
-                    resolve(box);
-                });
-            });
-        }
-
-        async function searchEmails() {
-            return new Promise((resolve, reject) => {
-                imap.search(['ALL'], (err, results) => {
-                    if (err) return reject(err);
-                    resolve(results);
-                });
-            });
-        }
-
-        async function markAsDeleted(uids) {
-            return new Promise((resolve, reject) => {
-                imap.addFlags(uids, ['\\Deleted'], (err) => {
-                    if (err) return reject(err);
-                    resolve();
-                });
-            });
-        }
-
-        async function expungeDeleted() {
-            return new Promise((resolve, reject) => {
-                imap.expunge((err) => {
-                    if (err) return reject(err);
-                    resolve();
-                });
-            });
-        }
-
-        imap.once('ready', async () => {
-            try {
-                await openInbox();
-                await openInboxFolder();
-
-                const results = await searchEmails();
-                if (results.length === 0) {
-                    console.log('No Inbox emails found.');
-                    imap.end();
-                    return res.json({ message: 'No Inbox emails found.' });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to get messages: ${response.status}, ${errorText}`);
                 }
 
-                const f = imap.fetch(results, { bodies: '' });
+                const data = await response.json();
+                if (data.value && data.value.length > 0) {
+                    allMessages = allMessages.concat(data.value);
+                }
 
-                f.on('message', (msg, seqno) => {
-                    console.log('Message #%d', seqno);
-                    msg.on('attributes', async (attrs) => {
-                        await markAsDeleted([attrs.uid]);
-                        console.log('Marked as deleted:', seqno);
-                    });
-                });
+                // 检查是否有下一页
+                nextLink = data['@odata.nextLink'] || null;
+            }
 
-                f.once('error', (err) => {
-                    console.log('Fetch error: ' + err);
-                    imap.end();
-                    return res.status(500).json({ error: 'Fetch error', details: err.message });
-                });
+            return allMessages;
+        }
 
-                f.once('end', async () => {
-                    console.log('Done fetching all messages!');
-                    await expungeDeleted();
-                    console.log('Expunged deleted messages.');
-                    imap.end();
-                    return res.json({ message: 'Emails processed successfully.' });
-                });
-            } catch (err) {
-                console.error('Error:', err);
-                imap.end();
-                return res.status(500).json({ error: 'Error processing emails', details: err.message });
+        // 删除单个邮件
+        async function deleteMessage(messageId) {
+            console.log(`Deleting message: ${messageId}`);
+            const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to delete message ${messageId}: ${response.status}, ${errorText}`);
+            }
+
+            return true;
+        }
+
+        // 获取并删除所有邮件
+        const messages = await getAllMessages();
+
+        if (messages.length === 0) {
+            console.log('No Inbox emails found.');
+            return res.json({ message: 'No Inbox emails found.' });
+        }
+
+        console.log(`Found ${messages.length} messages to delete`);
+
+        // 删除所有邮件
+        let deletedCount = 0;
+        let failedCount = 0;
+
+        for (const message of messages) {
+            try {
+                await deleteMessage(message.id);
+                deletedCount++;
+            } catch (error) {
+                console.error(`Error deleting message ${message.id}:`, error);
+                failedCount++;
+            }
+        }
+
+        console.log(`Deleted ${deletedCount} messages, failed to delete ${failedCount} messages`);
+        return res.json({
+            message: 'Emails processed successfully.',
+            stats: {
+                total: messages.length,
+                deleted: deletedCount,
+                failed: failedCount
             }
         });
-
-        imap.once('error', (err) => {
-            console.log(err);
-            imap.end();
-            return res.status(500).json({ error: 'IMAP connection error', details: err.message });
-        });
-
-        imap.once('end', () => {
-            console.log('Connection ended');
-        });
-
-        imap.connect();
 
     } catch (error) {
         console.error('Error:', error);
