@@ -1,5 +1,3 @@
-const nodemailer = require('nodemailer');
-
 module.exports = async (req, res) => {
 
     const { send_password } = req.method === 'GET' ? req.query : req.body;
@@ -33,34 +31,43 @@ module.exports = async (req, res) => {
             // 获取 access_token
             const access_token = await get_access_token(refresh_token, client_id);
 
-            // 创建 Nodemailer 传输器
-            const transporter = nodemailer.createTransport({
-                host: 'smtp.office365.com', // Outlook SMTP 服务器
-                port: 587, // Outlook SMTP 端口
-                secure: false, // true for 465, false for other ports
-                auth: {
-                    type: 'OAuth2',
-                    user: email, // 你的邮箱地址
-                    clientId: client_id, // 你的客户端 ID
-                    accessToken: access_token, // 获取的 access_token
-                },
-                tls: {
-                    ciphers: 'SSLv3'
+            // 准备收件人列表
+            const toRecipients = to.split(',').map(recipient => ({
+                emailAddress: {
+                    address: recipient.trim()
                 }
-            });
+            }));
 
-            // 邮件选项
-            const mailOptions = {
-                from: email, // 发件人地址
-                to: to, // 收件人地址
-                subject: subject, // 邮件主题
-                text: text, // 纯文本正文
-                html: html // HTML 正文
+            // 准备邮件内容
+            const emailMessage = {
+                message: {
+                    subject: subject,
+                    body: {
+                        contentType: html ? 'HTML' : 'Text',
+                        content: html || text
+                    },
+                    toRecipients: toRecipients
+                }
             };
 
-            // 发送邮件
-            const info = await transporter.sendMail(mailOptions);
-            res.status(200).json({ message: 'Email sent successfully', messageId: info.messageId });
+            // 使用 Microsoft Graph API 发送邮件
+            const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(emailMessage)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to send email: ${response.status}, ${errorText}`);
+            }
+
+            // Graph API 成功发送邮件后不返回消息ID，所以我们生成一个唯一标识符
+            const messageId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+            res.status(200).json({ message: 'Email sent successfully', messageId: messageId });
         } catch (error) {
             console.error('Error sending email:', error);
             res.status(500).json({ error: 'Failed to send email', details: error.message });
