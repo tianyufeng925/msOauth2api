@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MS OAuth2API - 使用帮助</title>
+    <link rel="icon" href="/favicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .content h2 {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .content h3 {
+            color: #34495e;
+            font-size: 1.2rem;
+            margin: 20px 0 10px 0;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .content ul, .content ol {
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+
+        .content li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header, .content {
+                padding: 20px;
+            }
+            
+            .nav-links a {
+                display: block;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 使用帮助</h1>
+            <p>MS OAuth2API 管理面板使用指南</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="/index.html">🏠 首页</a>
+            <a href="/admin.html">⚙️ 管理面板</a>
+            <a href="/api.html">📖 API 文档</a>
+        </div>
+
+        <div class="content">
+            <h2>🚀 快速开始</h2>
+            
+            <h3>1. 获取 OAuth2 凭据</h3>
+            <p>在使用管理面板之前，您需要准备以下信息：</p>
+            <ul>
+                <li><strong>Refresh Token</strong>: 用于刷新访问令牌的长期凭据</li>
+                <li><strong>Client ID</strong>: 您的应用程序客户端标识符</li>
+                <li><strong>邮箱地址</strong>: 要管理的 Outlook 邮箱地址</li>
+                <li><strong>API 密码</strong>: 如果部署时设置了密码保护（可选）</li>
+            </ul>
+
+            <div class="alert alert-info">
+                <strong>💡 提示：</strong>这些凭据将安全地存储在您的浏览器本地存储中，不会发送到任何第三方服务器。
+            </div>
+
+            <h3>2. 配置连接</h3>
+            <ol>
+                <li>访问 <a href="/admin.html" class="btn">管理面板</a></li>
+                <li>在"配置"标签页中填写您的 OAuth2 信息</li>
+                <li>点击"保存配置"按钮</li>
+                <li>点击"测试连接"验证配置是否正确</li>
+            </ol>
+        </div>
+
+        <div class="content">
+            <h2>📧 功能说明</h2>
+            
+            <h3>邮件管理</h3>
+            <ul>
+                <li><strong>获取最新邮件</strong>: 获取收件箱或垃圾箱中最新的一封邮件</li>
+                <li><strong>获取全部邮件</strong>: 获取指定文件夹中的所有邮件</li>
+                <li><strong>验证码识别</strong>: 自动识别并高亮显示邮件中的6位数字验证码</li>
+                <li><strong>完整邮件查看</strong>: 在新窗口中查看邮件的完整 HTML 内容</li>
+            </ul>
+
+            <h3>发送邮件</h3>
+            <ul>
+                <li><strong>多收件人支持</strong>: 支持向多个邮箱地址发送邮件（用逗号分隔）</li>
+                <li><strong>HTML 格式</strong>: 支持发送纯文本或 HTML 格式的邮件</li>
+                <li><strong>实时状态</strong>: 显示发送进度和结果反馈</li>
+            </ul>
+
+            <h3>邮箱清理</h3>
+            <ul>
+                <li><strong>清空收件箱</strong>: 批量删除收件箱中的所有邮件</li>
+                <li><strong>清空垃圾箱</strong>: 批量删除垃圾箱中的所有邮件</li>
+                <li><strong>安全确认</strong>: 执行清理操作前会要求确认</li>
+            </ul>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ 警告：</strong>邮箱清理操作是不可逆的，请在执行前确保您真的需要删除这些邮件。
+            </div>
+        </div>
+
+        <div class="content">
+            <h2>🔧 技术说明</h2>
+            
+            <h3>支持的邮箱类型</h3>
+            <ul>
+                <li>Microsoft Outlook</li>
+                <li>Hotmail</li>
+                <li>Live.com</li>
+                <li>其他支持 Microsoft Graph API 的邮箱服务</li>
+            </ul>
+
+            <h3>API 接口</h3>
+            <p>管理面板调用以下 API 接口：</p>
+            <div class="code">
+GET /api/mail-new     - 获取最新邮件
+GET /api/mail-all     - 获取全部邮件
+POST /api/send-mail   - 发送邮件
+GET /api/process-inbox - 清空收件箱
+GET /api/process-junk  - 清空垃圾箱
+            </div>
+
+            <h3>数据安全</h3>
+            <ul>
+                <li>所有配置信息仅存储在浏览器本地</li>
+                <li>支持 HTTPS 加密传输</li>
+                <li>不会记录或存储您的邮件内容</li>
+                <li>可随时清除本地配置信息</li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h2>❓ 常见问题</h2>
+            
+            <h3>Q: 为什么测试连接失败？</h3>
+            <p>A: 请检查以下几点：</p>
+            <ul>
+                <li>确保 Refresh Token 和 Client ID 正确</li>
+                <li>确保邮箱地址格式正确</li>
+                <li>检查网络连接是否正常</li>
+                <li>确认 API 服务是否正常运行</li>
+            </ul>
+
+            <h3>Q: 如何获取 OAuth2 凭据？</h3>
+            <p>A: 您需要在 Microsoft Azure 门户中注册应用程序并配置相应的权限。详细步骤请参考 Microsoft 官方文档。</p>
+
+            <h3>Q: 支持哪些浏览器？</h3>
+            <p>A: 支持所有现代浏览器，包括 Chrome、Firefox、Safari、Edge 等。建议使用最新版本以获得最佳体验。</p>
+
+            <h3>Q: 数据会被保存在服务器上吗？</h3>
+            <p>A: 不会。所有配置信息都存储在您的浏览器本地存储中，服务器不会保存任何用户数据。</p>
+        </div>
+
+        <div class="content" style="text-align: center;">
+            <h2>🎯 开始使用</h2>
+            <p>准备好开始管理您的邮箱了吗？</p>
+            <a href="/admin.html" class="btn">🚀 打开管理面板</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MS OAuth2API 管理面板</title>
+    <link rel="icon" href="/favicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 12px 20px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .email-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .email-item h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .email-item .meta {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .email-item .content {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .config-saved {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .nav-tab {
+                margin-bottom: 5px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 MS OAuth2API 管理面板</h1>
+            <p>轻松管理您的 Outlook 邮箱，支持邮件查看、发送和清理功能</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('config')">⚙️ 配置</button>
+            <button class="nav-tab" onclick="switchTab('emails')">📬 邮件管理</button>
+            <button class="nav-tab" onclick="switchTab('send')">📤 发送邮件</button>
+            <button class="nav-tab" onclick="switchTab('clean')">🗑️ 清理邮箱</button>
+        </div>
+
+        <!-- 配置标签页 -->
+        <div id="config" class="tab-content active">
+            <h2>OAuth2 配置</h2>
+            <div class="config-saved" id="configSaved">配置已保存到本地存储</div>
+            
+            <div class="form-group">
+                <label for="refreshToken">Refresh Token *</label>
+                <input type="text" id="refreshToken" placeholder="请输入您的 refresh_token">
+            </div>
+            
+            <div class="form-group">
+                <label for="clientId">Client ID *</label>
+                <input type="text" id="clientId" placeholder="请输入您的 client_id">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱地址 *</label>
+                <input type="email" id="email" placeholder="请输入您的邮箱地址">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">API 密码 (可选)</label>
+                <input type="password" id="password" placeholder="如果 API 需要密码验证，请输入">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+                <button class="btn btn-secondary" onclick="testConnection()">🔗 测试连接</button>
+                <button class="btn btn-secondary" onclick="clearConfig()">🗑️ 清除配置</button>
+            </div>
+        </div>
+
+        <!-- 邮件管理标签页 -->
+        <div id="emails" class="tab-content">
+            <h2>邮件管理</h2>
+            <div id="emailAlert"></div>
+            
+            <div class="form-group">
+                <label for="mailbox">选择邮箱文件夹</label>
+                <select id="mailbox">
+                    <option value="INBOX">收件箱 (INBOX)</option>
+                    <option value="Junk">垃圾邮件 (Junk)</option>
+                </select>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="getLatestEmail()">📧 获取最新邮件</button>
+                <button class="btn btn-primary" onclick="getAllEmails()">📬 获取全部邮件</button>
+            </div>
+            
+            <div class="loading" id="emailLoading">
+                <div class="spinner"></div>
+                <p>正在获取邮件...</p>
+            </div>
+            
+            <div id="emailResults"></div>
+        </div>
+
+        <!-- 发送邮件标签页 -->
+        <div id="send" class="tab-content">
+            <h2>发送邮件</h2>
+            <div id="sendAlert"></div>
+            
+            <div class="form-group">
+                <label for="sendTo">收件人 *</label>
+                <input type="email" id="sendTo" placeholder="请输入收件人邮箱地址，多个邮箱用逗号分隔">
+            </div>
+            
+            <div class="form-group">
+                <label for="sendSubject">主题 *</label>
+                <input type="text" id="sendSubject" placeholder="请输入邮件主题">
+            </div>
+            
+            <div class="form-group">
+                <label for="sendContent">邮件内容 *</label>
+                <textarea id="sendContent" placeholder="请输入邮件内容"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sendHtml"> 发送为 HTML 格式
+                </label>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="sendEmail()">📤 发送邮件</button>
+                <button class="btn btn-secondary" onclick="clearSendForm()">🗑️ 清空表单</button>
+            </div>
+            
+            <div class="loading" id="sendLoading">
+                <div class="spinner"></div>
+                <p>正在发送邮件...</p>
+            </div>
+        </div>
+
+        <!-- 清理邮箱标签页 -->
+        <div id="clean" class="tab-content">
+            <h2>清理邮箱</h2>
+            <div id="cleanAlert"></div>
+            
+            <div class="alert alert-info">
+                <strong>⚠️ 注意：</strong>清理操作将永久删除邮件，请谨慎操作！
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-danger" onclick="cleanInbox()">🗑️ 清空收件箱</button>
+                <button class="btn btn-danger" onclick="cleanJunk()">🗑️ 清空垃圾箱</button>
+            </div>
+            
+            <div class="loading" id="cleanLoading">
+                <div class="spinner"></div>
+                <p>正在清理邮箱...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/admin.js"></script>
+</body>
+</html>
