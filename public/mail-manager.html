@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮件管理器 - MS OAuth2API</title>
+    <link rel="icon" href="/unix.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #4f46e5;
+            border-bottom: 3px solid #4f46e5;
+        }
+
+        .nav-tab:hover {
+            background: #f1f5f9;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .config-list {
+            margin-top: 20px;
+        }
+
+        .config-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-info {
+            flex: 1;
+        }
+
+        .config-email {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .result-area {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .config-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .config-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 邮件管理器</h1>
+            <p>基于 MS OAuth2API 的邮件管理工具</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('config')">📝 邮箱配置</button>
+            <button class="nav-tab" onclick="switchTab('mail')">📨 邮件操作</button>
+            <button class="nav-tab" onclick="switchTab('send')">📤 发送邮件</button>
+            <button class="nav-tab" onclick="switchTab('about')">ℹ️ 关于</button>
+        </div>
+
+        <!-- 邮箱配置标签页 -->
+        <div id="config" class="tab-content active">
+            <h2>邮箱配置管理</h2>
+            <p>添加和管理您的邮箱配置信息</p>
+
+            <form id="configForm">
+                <div class="form-group">
+                    <label for="configName">配置名称</label>
+                    <input type="text" id="configName" placeholder="例如：主邮箱" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">邮箱地址</label>
+                    <input type="email" id="email" placeholder="your_email@outlook.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="refreshToken">Refresh Token</label>
+                    <input type="text" id="refreshToken" placeholder="your_refresh_token" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientId">Client ID</label>
+                    <input type="text" id="clientId" placeholder="your_client_id" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">API密码 (可选)</label>
+                    <input type="password" id="password" placeholder="如果API设置了密码验证">
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 保存配置</button>
+                <button type="button" class="btn btn-secondary" onclick="clearForm()">🗑️ 清空表单</button>
+            </form>
+
+            <div class="config-list" id="configList">
+                <!-- 配置列表将在这里动态生成 -->
+            </div>
+        </div>
+
+        <!-- 邮件操作标签页 -->
+        <div id="mail" class="tab-content">
+            <h2>邮件操作</h2>
+            <p>选择邮箱配置并执行邮件操作</p>
+
+            <div class="form-group">
+                <label for="selectedConfig">选择邮箱配置</label>
+                <select id="selectedConfig">
+                    <option value="">请选择邮箱配置</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="mailbox">邮箱文件夹</label>
+                <select id="mailbox">
+                    <option value="INBOX">收件箱 (INBOX)</option>
+                    <option value="Junk">垃圾箱 (Junk)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="getLatestMail()">📧 获取最新邮件</button>
+                <button class="btn btn-primary" onclick="getAllMails()">📂 获取全部邮件</button>
+                <button class="btn btn-danger" onclick="clearInbox()">🗑️ 清空收件箱</button>
+                <button class="btn btn-danger" onclick="clearJunk()">🗑️ 清空垃圾箱</button>
+            </div>
+
+            <div class="loading" id="mailLoading">
+                <div class="spinner"></div>
+                <p>正在处理请求...</p>
+            </div>
+
+            <div class="result-area" id="mailResult">
+                操作结果将在这里显示...
+            </div>
+        </div>
+
+        <!-- 发送邮件标签页 -->
+        <div id="send" class="tab-content">
+            <h2>发送邮件</h2>
+            <p>使用配置的邮箱发送邮件</p>
+
+            <div class="form-group">
+                <label for="sendConfig">选择发件邮箱</label>
+                <select id="sendConfig">
+                    <option value="">请选择邮箱配置</option>
+                </select>
+            </div>
+
+            <form id="sendMailForm">
+                <div class="form-group">
+                    <label for="toEmail">收件人</label>
+                    <input type="email" id="toEmail" placeholder="recipient@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">邮件主题</label>
+                    <input type="text" id="subject" placeholder="邮件主题" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="contentType">内容类型</label>
+                    <select id="contentType" onchange="toggleContentType()">
+                        <option value="text">纯文本</option>
+                        <option value="html">HTML格式</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="mailContent">邮件内容</label>
+                    <textarea id="mailContent" rows="8" placeholder="请输入邮件内容..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="sendPassword">发送密码 (可选)</label>
+                    <input type="password" id="sendPassword" placeholder="如果API设置了发送密码验证">
+                </div>
+
+                <button type="submit" class="btn btn-success">📤 发送邮件</button>
+                <button type="button" class="btn btn-secondary" onclick="clearSendForm()">🗑️ 清空表单</button>
+            </form>
+
+            <div class="loading" id="sendLoading">
+                <div class="spinner"></div>
+                <p>正在发送邮件...</p>
+            </div>
+
+            <div class="result-area" id="sendResult">
+                发送结果将在这里显示...
+            </div>
+        </div>
+
+        <!-- 关于标签页 -->
+        <div id="about" class="tab-content">
+            <h2>关于邮件管理器</h2>
+
+            <div class="alert alert-info">
+                <strong>📋 功能说明</strong><br>
+                这是一个基于 MS OAuth2API 的邮件管理工具，提供了友好的界面来操作您的 Outlook 邮箱。
+            </div>
+
+            <h3>🚀 主要功能</h3>
+            <ul style="margin: 20px 0; padding-left: 20px; line-height: 1.8;">
+                <li><strong>邮箱配置管理</strong> - 添加、编辑和删除邮箱配置</li>
+                <li><strong>邮件获取</strong> - 获取最新邮件或全部邮件</li>
+                <li><strong>邮箱清理</strong> - 清空收件箱或垃圾箱</li>
+                <li><strong>邮件发送</strong> - 支持纯文本和HTML格式邮件发送</li>
+                <li><strong>本地存储</strong> - 配置信息安全保存在浏览器本地</li>
+            </ul>
+
+            <h3>🔧 API接口</h3>
+            <ul style="margin: 20px 0; padding-left: 20px; line-height: 1.8;">
+                <li><code>/api/mail-new</code> - 获取最新邮件</li>
+                <li><code>/api/mail-all</code> - 获取全部邮件</li>
+                <li><code>/api/process-inbox</code> - 清空收件箱</li>
+                <li><code>/api/process-junk</code> - 清空垃圾箱</li>
+                <li><code>/api/send-mail</code> - 发送邮件</li>
+            </ul>
+
+            <h3>🔒 安全说明</h3>
+            <div class="alert alert-success">
+                <strong>隐私保护</strong><br>
+                所有配置信息仅保存在您的浏览器本地存储中，不会上传到服务器。请妥善保管您的 refresh_token 和 client_id 等敏感信息。
+            </div>
+
+            <h3>📞 技术支持</h3>
+            <p style="margin: 20px 0; line-height: 1.8;">
+                如有问题或建议，请访问：<br>
+                🔗 <a href="https://github.com/HChaoHui/msOauth2api" target="_blank" style="color: #4f46e5;">GitHub 项目地址</a><br>
+                📧 <a href="mailto:z@unix.xin" style="color: #4f46e5;">联系邮箱：z@unix.xin</a>
+            </p>
+
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px;">
+                <p style="color: #6b7280;">MS OAuth2API 邮件管理器</p>
+                <p style="color: #6b7280; font-size: 0.9rem;">版本 1.0.0 | 基于 MS OAuth2API 构建</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let configs = JSON.parse(localStorage.getItem('mailConfigs') || '[]');
+        let currentEditIndex = -1;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfigs();
+            updateConfigSelects();
+
+            // 绑定表单提交事件
+            document.getElementById('configForm').addEventListener('submit', saveConfig);
+            document.getElementById('sendMailForm').addEventListener('submit', sendMail);
+        });
+
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // 移除所有标签的激活状态
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签内容
+            document.getElementById(tabName).classList.add('active');
+
+            // 激活选中的标签
+            event.target.classList.add('active');
+        }
+
+        // 保存配置
+        function saveConfig(e) {
+            e.preventDefault();
+
+            const config = {
+                name: document.getElementById('configName').value,
+                email: document.getElementById('email').value,
+                refreshToken: document.getElementById('refreshToken').value,
+                clientId: document.getElementById('clientId').value,
+                password: document.getElementById('password').value,
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentEditIndex >= 0) {
+                // 编辑现有配置
+                configs[currentEditIndex] = { ...configs[currentEditIndex], ...config };
+                currentEditIndex = -1;
+                showAlert('配置更新成功！', 'success');
+            } else {
+                // 添加新配置
+                configs.push(config);
+                showAlert('配置保存成功！', 'success');
+            }
+
+            localStorage.setItem('mailConfigs', JSON.stringify(configs));
+            loadConfigs();
+            updateConfigSelects();
+            clearForm();
+        }
+
+        // 加载配置列表
+        function loadConfigs() {
+            const configList = document.getElementById('configList');
+
+            if (configs.length === 0) {
+                configList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">暂无邮箱配置，请添加配置</p>';
+                return;
+            }
+
+            configList.innerHTML = configs.map((config, index) => `
+                <div class="config-item">
+                    <div class="config-info">
+                        <div class="config-email">${config.name} (${config.email})</div>
+                        <div style="color: #6b7280; font-size: 0.9rem;">
+                            创建时间: ${new Date(config.createdAt).toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="config-actions">
+                        <button class="btn btn-secondary" onclick="editConfig(${index})">✏️ 编辑</button>
+                        <button class="btn btn-danger" onclick="deleteConfig(${index})">🗑️ 删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 更新配置选择下拉框
+        function updateConfigSelects() {
+            const selects = ['selectedConfig', 'sendConfig'];
+
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">请选择邮箱配置</option>';
+
+                configs.forEach((config, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${config.name} (${config.email})`;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // 编辑配置
+        function editConfig(index) {
+            const config = configs[index];
+            currentEditIndex = index;
+
+            document.getElementById('configName').value = config.name;
+            document.getElementById('email').value = config.email;
+            document.getElementById('refreshToken').value = config.refreshToken;
+            document.getElementById('clientId').value = config.clientId;
+            document.getElementById('password').value = config.password || '';
+
+            // 切换到配置标签页
+            switchTab('config');
+            document.querySelector('[onclick="switchTab(\'config\')"]').classList.add('active');
+
+            showAlert('配置已加载到表单，修改后点击保存', 'info');
+        }
+
+        // 删除配置
+        function deleteConfig(index) {
+            if (confirm('确定要删除这个配置吗？')) {
+                configs.splice(index, 1);
+                localStorage.setItem('mailConfigs', JSON.stringify(configs));
+                loadConfigs();
+                updateConfigSelects();
+                showAlert('配置删除成功！', 'success');
+            }
+        }
+
+        // 清空表单
+        function clearForm() {
+            document.getElementById('configForm').reset();
+            currentEditIndex = -1;
+        }
+
+        // 清空发送邮件表单
+        function clearSendForm() {
+            document.getElementById('sendMailForm').reset();
+        }
+
+        // 切换内容类型
+        function toggleContentType() {
+            const contentType = document.getElementById('contentType').value;
+            const textarea = document.getElementById('mailContent');
+
+            if (contentType === 'html') {
+                textarea.placeholder = '请输入HTML格式的邮件内容，例如：<h1>标题</h1><p>内容</p>';
+            } else {
+                textarea.placeholder = '请输入纯文本邮件内容...';
+            }
+        }
+
+        // 显示提示信息
+        function showAlert(message, type = 'info') {
+            // 移除现有的提示
+            const existingAlert = document.querySelector('.alert');
+            if (existingAlert && existingAlert.parentNode.classList.contains('tab-content')) {
+                existingAlert.remove();
+            }
+
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+
+            // 插入到当前活动标签页的开头
+            const activeTab = document.querySelector('.tab-content.active');
+            activeTab.insertBefore(alert, activeTab.firstChild);
+
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 3000);
+        }
+
+        // 获取选中的配置
+        function getSelectedConfig() {
+            const selectedIndex = document.getElementById('selectedConfig').value;
+            if (!selectedIndex) {
+                showAlert('请先选择邮箱配置！', 'error');
+                return null;
+            }
+            return configs[selectedIndex];
+        }
+
+        // 显示加载状态
+        function showLoading(show = true) {
+            const loading = document.getElementById('mailLoading');
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
+            }
+        }
+
+        // 显示结果
+        function showResult(result, isError = false) {
+            const resultArea = document.getElementById('mailResult');
+
+            if (isError) {
+                resultArea.style.color = '#dc2626';
+                resultArea.style.background = '#fee2e2';
+            } else {
+                resultArea.style.color = '#374151';
+                resultArea.style.background = '#f8fafc';
+            }
+
+            if (typeof result === 'object') {
+                resultArea.textContent = JSON.stringify(result, null, 2);
+            } else {
+                resultArea.textContent = result;
+            }
+        }
+
+        // API请求函数
+        async function makeApiRequest(endpoint, params) {
+            const baseUrl = window.location.origin;
+            const url = new URL(`${baseUrl}/api/${endpoint}`);
+
+            // 添加参数到URL
+            Object.keys(params).forEach(key => {
+                if (params[key]) {
+                    url.searchParams.append(key, params[key]);
+                }
+            });
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+
+                return data;
+            } catch (error) {
+                throw new Error(`请求失败: ${error.message}`);
+            }
+        }
+
+        // 获取最新邮件
+        async function getLatestMail() {
+            const config = getSelectedConfig();
+            if (!config) return;
+
+            const mailbox = document.getElementById('mailbox').value;
+
+            showLoading(true);
+            showResult('正在获取最新邮件...');
+
+            try {
+                const result = await makeApiRequest('mail-new', {
+                    refresh_token: config.refreshToken,
+                    client_id: config.clientId,
+                    email: config.email,
+                    mailbox: mailbox,
+                    password: config.password,
+                    response_type: 'json'
+                });
+
+                showResult(result);
+                showAlert('最新邮件获取成功！', 'success');
+            } catch (error) {
+                showResult(error.message, true);
+                showAlert(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 获取全部邮件
+        async function getAllMails() {
+            const config = getSelectedConfig();
+            if (!config) return;
+
+            const mailbox = document.getElementById('mailbox').value;
+
+            showLoading(true);
+            showResult('正在获取全部邮件...');
+
+            try {
+                const result = await makeApiRequest('mail-all', {
+                    refresh_token: config.refreshToken,
+                    client_id: config.clientId,
+                    email: config.email,
+                    mailbox: mailbox,
+                    password: config.password
+                });
+
+                showResult(result);
+                showAlert('全部邮件获取成功！', 'success');
+            } catch (error) {
+                showResult(error.message, true);
+                showAlert(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 清空收件箱
+        async function clearInbox() {
+            const config = getSelectedConfig();
+            if (!config) return;
+
+            if (!confirm('确定要清空收件箱吗？此操作不可撤销！')) {
+                return;
+            }
+
+            showLoading(true);
+            showResult('正在清空收件箱...');
+
+            try {
+                const result = await makeApiRequest('process-inbox', {
+                    refresh_token: config.refreshToken,
+                    client_id: config.clientId,
+                    email: config.email,
+                    password: config.password
+                });
+
+                showResult(result);
+                showAlert('收件箱清空成功！', 'success');
+            } catch (error) {
+                showResult(error.message, true);
+                showAlert(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 清空垃圾箱
+        async function clearJunk() {
+            const config = getSelectedConfig();
+            if (!config) return;
+
+            if (!confirm('确定要清空垃圾箱吗？此操作不可撤销！')) {
+                return;
+            }
+
+            showLoading(true);
+            showResult('正在清空垃圾箱...');
+
+            try {
+                const result = await makeApiRequest('process-junk', {
+                    refresh_token: config.refreshToken,
+                    client_id: config.clientId,
+                    email: config.email,
+                    password: config.password
+                });
+
+                showResult(result);
+                showAlert('垃圾箱清空成功！', 'success');
+            } catch (error) {
+                showResult(error.message, true);
+                showAlert(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 发送邮件
+        async function sendMail(e) {
+            e.preventDefault();
+
+            const configIndex = document.getElementById('sendConfig').value;
+            if (!configIndex) {
+                showAlert('请先选择发件邮箱配置！', 'error');
+                return;
+            }
+
+            const config = configs[configIndex];
+            const contentType = document.getElementById('contentType').value;
+            const content = document.getElementById('mailContent').value;
+
+            const params = {
+                refresh_token: config.refreshToken,
+                client_id: config.clientId,
+                email: config.email,
+                to: document.getElementById('toEmail').value,
+                subject: document.getElementById('subject').value,
+                send_password: document.getElementById('sendPassword').value
+            };
+
+            // 根据内容类型设置参数
+            if (contentType === 'html') {
+                params.html = content;
+            } else {
+                params.text = content;
+            }
+
+            const sendLoading = document.getElementById('sendLoading');
+            const sendResult = document.getElementById('sendResult');
+
+            sendLoading.classList.add('show');
+            sendResult.textContent = '正在发送邮件...';
+            sendResult.style.color = '#374151';
+            sendResult.style.background = '#f8fafc';
+
+            try {
+                // 使用POST方法发送邮件
+                const response = await fetch(`${window.location.origin}/api/send-mail`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(params)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || `HTTP ${response.status}`);
+                }
+
+                sendResult.textContent = JSON.stringify(result, null, 2);
+                showAlert('邮件发送成功！', 'success');
+
+                // 清空表单
+                clearSendForm();
+            } catch (error) {
+                sendResult.style.color = '#dc2626';
+                sendResult.style.background = '#fee2e2';
+                sendResult.textContent = `发送失败: ${error.message}`;
+                showAlert(`发送失败: ${error.message}`, 'error');
+            } finally {
+                sendLoading.classList.remove('show');
+            }
+        }
+
+        // 导出配置
+        function exportConfigs() {
+            if (configs.length === 0) {
+                showAlert('没有配置可以导出！', 'error');
+                return;
+            }
+
+            const dataStr = JSON.stringify(configs, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'mail-configs.json';
+            link.click();
+
+            showAlert('配置导出成功！', 'success');
+        }
+
+        // 导入配置
+        function importConfigs() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedConfigs = JSON.parse(e.target.result);
+
+                        if (!Array.isArray(importedConfigs)) {
+                            throw new Error('配置文件格式不正确');
+                        }
+
+                        configs = importedConfigs;
+                        localStorage.setItem('mailConfigs', JSON.stringify(configs));
+                        loadConfigs();
+                        updateConfigSelects();
+                        showAlert('配置导入成功！', 'success');
+                    } catch (error) {
+                        showAlert(`导入失败: ${error.message}`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+    </script>
+</body>
+</html>
