@@ -1,78 +1,6 @@
 const Imap = require('node-imap');
 const simpleParser = require("mailparser").simpleParser;
-
-async function get_access_token(refresh_token, client_id) {
-    const response = await fetch('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-            'client_id': client_id,
-            'grant_type': 'refresh_token',
-            'refresh_token': refresh_token
-        }).toString()
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-    }
-
-    const responseText = await response.text();
-
-    try {
-        const data = JSON.parse(responseText);
-        return data.access_token;
-    } catch (parseError) {
-        throw new Error(`Failed to parse JSON: ${parseError.message}, response: ${responseText}`);
-    }
-}
-
-const generateAuthString = (user, accessToken) => {
-    const authString = `user=${user}\x01auth=Bearer ${accessToken}\x01\x01`;
-    return Buffer.from(authString).toString('base64');
-}
-
-async function graph_api(refresh_token, client_id) {
-    const response = await fetch('https://login.microsoftonline.com/consumers/oauth2/v2.0/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-            'client_id': client_id,
-            'grant_type': 'refresh_token',
-            'refresh_token': refresh_token,
-            'scope': 'https://graph.microsoft.com/.default'
-        }).toString()
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-    }
-
-    const responseText = await response.text();
-
-    try {
-        const data = JSON.parse(responseText);
-
-        if (data.scope.indexOf('https://graph.microsoft.com/Mail.ReadWrite') != -1) {
-            return {
-                access_token: data.access_token,
-                status: true
-            }
-        }
-
-        return {
-            access_token: data.access_token,
-            status: false
-        }
-    } catch (parseError) {
-        throw new Error(`Failed to parse JSON: ${parseError.message}, response: ${responseText}`);
-    }
-}
+const { generateAuthString, get_access_token, graph_api } = require('./utils');
 
 async function get_emails(access_token, mailbox) {
 
@@ -82,7 +10,8 @@ async function get_emails(access_token, mailbox) {
     }
 
     try {
-        const response = await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/${mailbox}/messages?$top=1&$orderby=receivedDateTime desc`, {
+        // 添加$select参数以获取internetMessageId字段
+        const response = await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/${mailbox}/messages?$top=1&$orderby=receivedDateTime desc&$select=id,from,subject,bodyPreview,body,createdDateTime,internetMessageId`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -101,11 +30,14 @@ async function get_emails(access_token, mailbox) {
 
         const response_emails = emails.map(item => {
             return {
+                id: item['id'],
+                messageId: item['internetMessageId'] || item['id'], // 完整的Message-ID
                 send: item['from']['emailAddress']['address'],
                 subject: item['subject'],
                 text: item['bodyPreview'],
                 html: item['body']['content'],
                 date: item['createdDateTime'],
+                mode: 'graph' // 标识使用的模式
             }
         })
 
@@ -207,11 +139,15 @@ module.exports = async (req, res) => {
                         simpleParser(stream, (err, mail) => {
                             if (err) throw err;
                             const responseData = {
+                                id: `imap_${seqno}_${Date.now()}`, // 生成唯一ID
+                                messageId: mail.messageId || mail.headers.get('message-id') || `imap_${seqno}_${Date.now()}`, // 完整的Message-ID
                                 send: mail.from.text,
                                 subject: mail.subject,
                                 text: mail.text,
                                 html: mail.html,
                                 date: mail.date,
+                                mode: 'imap', // 标识使用的模式
+                                _imapSeqno: seqno // 保存IMAP序列号用于删除操作
                             };
 
                             // 根据 response_type 返回 JSON 或 HTML
@@ -224,6 +160,9 @@ module.exports = async (req, res) => {
                                         <body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f9f9f9;">
                                             <div style="margin: 0 auto; background: #fff; padding: 20px; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                                                 <h1 style="color: #333;">邮件信息</h1>
+                                                <p><strong>邮件ID:</strong> ${responseData.id}</p>
+                                                <p><strong>Message-ID:</strong> ${responseData.messageId}</p>
+                                                <p><strong>模式:</strong> ${responseData.mode}</p>
                                                 <p><strong>发件人:</strong> ${responseData.send}</p>
                                                 <p><strong>主题:</strong> ${responseData.subject}</p>
                                                 <p><strong>日期:</strong> ${responseData.date}</p>
